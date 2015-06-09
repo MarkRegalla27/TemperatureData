@@ -44,7 +44,7 @@ print 'End Date' + str(end_date)
 
 con = lite.connect('weather.db')
 cur = con.cursor()
-
+'''
 #Drop city_max_temp table if it exists already
 with con:
     cur.execute('DROP TABLE city_max_temp')
@@ -53,13 +53,13 @@ with con:
 with con:
     #cur.execute('CREATE TABLE city_max_temp (city TEXT PRIMARY KEY, todays_date TEXT, max_temp TEXT)')
 	cur.execute('CREATE TABLE city_max_temp (day_of_reading INT, Atlanta REAL, Austin REAL, Boston REAL, Chicago REAL, Cleveland REAL)')
-'''
+
 with con:
     while query_date < end_date:
         cur.execute("INSERT INTO city_max_temp(day_of_reading) VALUES (?)", (int(query_date.strftime('%s')),))
         query_date += datetime.timedelta(days=1)
         print query_date
-'''
+
 #sql = "INSERT INTO city_max_temp (city, todays_date, max_temp) VALUES (?,?,?)"
 #data_list[]
 
@@ -69,32 +69,51 @@ i = 0
 for k,v in cities.iteritems():
 	print k
 
-	query_date = end_date - datetime.timedelta(days=30) #set value each time through the loop of cities
+	query_date = end_date - datetime.timedelta(days=31) #set value each time through the loop of cities
 	print query_date
 	
 	while query_date < end_date:
+		query_date += datetime.timedelta(days=1)
+		print query_date
 		#url = base_url + row[1]['coordinates'] + ',' + start_date	#row is a 2-dimensional variable, containing city and coordinates for each row
 		#r = requests.get(url)
 		#r = requests.get(base_url + row[1]['coordinates'] + ',' +  query_date.strftime('%Y-%m-%dT12:00:00'))
 		r = requests.get(base_url + v + ',' +  query_date.strftime('%Y-%m-%dT12:00:00'))
 		#print r.status_code		#prints url status.  If 400, then invalid request was made and will not fetch the data
-		print query_date
-		#Code below labeled "Label 1" inserts here
+		#print query_date
+		#print r.url
+		#max_temp = r.json()['daily']['data'][0]['temperatureMax']
+		#print max_temp
+		#cur.execute(sql,(cities['city'][i],readable_date, max_temp))
 		
 		with con:
 			#cur.execute('UPDATE city_max_temp SET ' + i + ' = ' + str(r.json()['daily']['data'][0]['temperatureMax']) + ' WHERE day_of_reading = ' + query_date.strftime('%s'))
-			cur.execute("INSERT INTO city_max_temp(day_of_reading) VALUES (?)", (int(query_date.strftime('%s')),))
+			#cur.execute("INSERT INTO city_max_temp(day_of_reading) VALUES (?)", (int(query_date.strftime('%s')),))
 			cur.execute('UPDATE city_max_temp SET ' + k + ' = ' + str(r.json()['daily']['data'][0]['temperatureMax']) + ' WHERE day_of_reading = ' + query_date.strftime('%s'))
 		
 		#increment query_date to the next day for next operation of loop, BUT IT WON'T
-        query_date = query_date + datetime.timedelta(days=1) #increment query_date to the next day
-        #print query_date
+        #query_date = query_date + datetime.timedelta(days=1)
+        
 	#i += 1
 	#print i
 	#if i == 30:
 	#	break
+'''
+#Select and print range of temperatures for each city
+with con:
+	cur.execute("SELECT max(Austin) FROM city_max_temp")
+	theMax = cur.fetchall()
+	print type(theMax)
+	theMax = map(float, theMax)
+	print type(theMax)
 
-
+	cur.execute("SELECT min(Austin) FROM city_max_temp")
+	theMin = cur.fetchall()
+	print type(theMin)
+	theMin = map(float, theMin)
+	print type(theMin)
+	#theRange = float(theMax) - float(theMin)
+	#print 'Austin temperature range = ' + theRange
 
 con.close()
 
@@ -103,9 +122,5 @@ con.close()
 
 # cd /users/markregalla/projects/temperaturefiles
 
-#Label 1
-#print r.url
-#max_temp = r.json()['daily']['data'][0]['temperatureMax']
-#print max_temp
-#cur.execute(sql,(cities['city'][i],readable_date, max_temp))
+
 

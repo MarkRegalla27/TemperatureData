@@ -100,11 +100,33 @@ for k,v in cities.iteritems():
 	#	break
 '''
 #Select and print range of temperatures for each city
+Tempdf = pd.read_sql_query("SELECT * from city_max_temp", con)
+
+for i in Tempdf.iterrows():
+	print 'Austin Temperature Range is ' + str(max(Tempdf['Austin']) - min(Tempdf['Austin']))
+	print 'Austin Average Temperature is ' + str(Tempdf['Austin'].mean())
+	print 'Austin Temperature variance is ' + str(Tempdf['Austin'].var())
+
+scatter_matrix(Tempdf, alpha=0.05, figsize=(6,6))
+plt.show()
+
+'''
 with con:
+	cur.execute("SELECT * from city_max_temp")
+	Tempdf = cur.fetchall()
+	Tempdf = pd.DataFrame(Tempdf)
+	scatter_matrix(Tempdf, alpha=0.05, figsize=(6,6))
+	plt.show()
+
+	#print 'Austin Temperature Range is ' + str(max(Tempdf['Austin']) - min(Tempdf['Austin']))
+	#print 'Austin Average Temperature is ' + str(Tempdf['Austin'].mean())
+	#print 'Austin Temperature variance is ' + str(Tempdf['Austin'].var())
+
+	
 	cur.execute("SELECT max(Austin) FROM city_max_temp")
 	theMax = cur.fetchall()
 	print type(theMax)
-	theMax = map(float, theMax)
+	theMax = map(lambda theMax: float(theMax))
 	print type(theMax)
 
 	cur.execute("SELECT min(Austin) FROM city_max_temp")
@@ -115,8 +137,17 @@ with con:
 	#theRange = float(theMax) - float(theMin)
 	#print 'Austin temperature range = ' + theRange
 
-con.close()
+	cur.execute("SELECT avg(Austin) from city_max_temp")
+	theAvg = cur.fetchall()
+	theAvg = pd.DataFrame(theAvg)
+	print 'Average temperature in Austin is ' + str(theAvg.mean())
 
+	cur.execute("SELECT var(Austin) from city_max_temp")
+	theVar = cur.fetchall()
+	print 'Temperature variance in Austin is ' + str(theVar)
+
+con.close()
+'''
 
 
 

@@ -143,63 +143,36 @@ while query_date < end_date:
 
 #Select and print range of temperatures for each city
 Tempdf = pd.read_sql_query("SELECT * from tidy_max_temp", con)
-print Tempdf
+#print Tempdf
 
 cities_list = Tempdf['city'].unique()
-print cities_list
+#print cities_list
 
 tempString = '{0} Temperature Range is: {1}'
+lastRange = 0
 for city in cities_list:
-    tempRange = str(Tempdf.ix[Tempdf['city'] == city, 'max_temp'].max() - Tempdf.ix[Tempdf['city'] == city, 'max_temp'].min())
-    #check data types in line above
+    tempRange = str(float(Tempdf.ix[Tempdf['city'] == city, 'max_temp'].max()) - float(Tempdf.ix[Tempdf['city'] == city, 'max_temp'].min()))
+    if tempRange > lastRange:
+        lastRange = tempRange
+        maxCity = city
     print tempString.format(city, tempRange)
-'''
-for i in Tempdf.iterrows():
-	print 'Austin Temperature Range is ' + str(max(Tempdf['Austin']) - min(Tempdf['Austin']))
-	print 'Austin Average Temperature is ' + str(Tempdf['Austin'].mean())
-	print 'Austin Temperature variance is ' + str(Tempdf['Austin'].var())
 
-#scatter_matrix(Tempdf, alpha=0.05, figsize=(6,6))
-#plt.show()
+print 'The city with the greatest change is ' + str(maxCity) + ' with a range of ' + str(lastRange)
 
+tempString = '{0} Mean Temperature is: {1}'
+for city in cities_list:
+    meanTemp = Tempdf.ix[Tempdf['city'] == city, 'max_temp']
+    meanTemp = meanTemp.astype(float)
+    print str(city) + ' ' + str(meanTemp)
+    meanTemp = str(meanTemp.mean())
+    print tempString.format(city, meanTemp)
 
-with con:
-	cur.execute("SELECT * from city_max_temp")
-	Tempdf = cur.fetchall()
-	Tempdf = pd.DataFrame(Tempdf)
-	scatter_matrix(Tempdf, alpha=0.05, figsize=(6,6))
-	plt.show()
-
-	#print 'Austin Temperature Range is ' + str(max(Tempdf['Austin']) - min(Tempdf['Austin']))
-	#print 'Austin Average Temperature is ' + str(Tempdf['Austin'].mean())
-	#print 'Austin Temperature variance is ' + str(Tempdf['Austin'].var())
-
-	
-	cur.execute("SELECT max(Austin) FROM city_max_temp")
-	theMax = cur.fetchall()
-	print type(theMax)
-	theMax = map(lambda theMax: float(theMax))
-	print type(theMax)
-
-	cur.execute("SELECT min(Austin) FROM city_max_temp")
-	theMin = cur.fetchall()
-	print type(theMin)
-	theMin = map(float, theMin)
-	print type(theMin)
-	#theRange = float(theMax) - float(theMin)
-	#print 'Austin temperature range = ' + theRange
-
-	cur.execute("SELECT avg(Austin) from city_max_temp")
-	theAvg = cur.fetchall()
-	theAvg = pd.DataFrame(theAvg)
-	print 'Average temperature in Austin is ' + str(theAvg.mean())
-
-	cur.execute("SELECT var(Austin) from city_max_temp")
-	theVar = cur.fetchall()
-	print 'Temperature variance in Austin is ' + str(theVar)
-
-con.close()
-'''
+tempString = '{0} Temperature Variance is: {1}'
+for city in cities_list:
+    varTemp = Tempdf.ix[Tempdf['city'] == city, 'max_temp']
+    varTemp = varTemp.astype(float)
+    varTemp = str(varTemp.var())
+    print tempString.format(city, varTemp)
 
 
 # cd /users/markregalla/projects/temperaturefiles

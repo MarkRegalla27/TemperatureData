@@ -25,21 +25,13 @@ cities = { "Atlanta": '33.762909,-84.422675',
 
 base_url = 'https://api.forecast.io/forecast/ed5384712a6c42598d505ff33c0bd2aa/'
 start_date = datetime.datetime.now() - datetime.timedelta(days=30)
-#start_date = datetime.datetime.now()
-#start_date = datetime.datetime.strftime(datetime.datetime.now() - datetime.timedelta(days=30), '%Y-%m-%dT%H:%M:%S%z')
-#start_date = datetime.datetime.strftime(datetime.datetime.now() - datetime.timedelta(days=30), '%Y-%m-%dT12:00:00')
-#end_date = datetime.datetime.strftime(datetime.datetime.now(),'%Y-%m-%dT12:00:00')
 end_date = datetime.datetime.now()
 readable_date = start_date
 query_date = end_date - datetime.timedelta(days=30)  #the current value being processed
-#query_date = datetime.datetime.strftime(end_date - datetime.timedelta(days=30), '%Y-%m-%dT12:00:00') #the current value being processed
-#print 'Start Date' + str(start_date)
-#print 'End Date' + str(end_date)
-#print cities
 
 con = lite.connect('weather.db')
 cur = con.cursor()
-'''
+
 #Drop city_max_temp table if it exists already
 with con:
     #cur.execute('DROP TABLE city_max_temp')	#Grid table as lesson gives
@@ -48,15 +40,13 @@ with con:
 #make a table of city, date, max temp
 with con:
     cur.execute('CREATE TABLE tidy_max_temp (city TEXT, todays_date TEXT, max_temp TEXT)')
-    #cur.execute('CREATE TABLE city_max_temp (day_of_reading INT, Atlanta REAL, Austin REAL, Boston REAL, Chicago REAL, Cleveland REAL)')
+    cur.execute('CREATE TABLE city_max_temp (day_of_reading INT, Atlanta REAL, Austin REAL, Boston REAL, Chicago REAL, Cleveland REAL)')
 
 #Insert timestamps into each row of matrix style database table
 with con:
     while query_date < end_date:
         cur.execute("INSERT INTO city_max_temp(day_of_reading) VALUES (?)", (int(query_date.strftime('%s')),))
         query_date += datetime.timedelta(days=1)
-        #print query_date
-
 
 #sql = "INSERT INTO city_max_temp (city, todays_date, max_temp) VALUES (?,?,?)"
 #data_list[]
@@ -74,16 +64,7 @@ for k,v in cities.iteritems():
 		#print query_date
 		
         r = requests.get(base_url + v + ',' +  query_date.strftime('%Y-%m-%dT12:00:00'))
-		#print r.status_code		#prints url status.  If 400, then invalid request was made and will not fetch the data
-		#print query_date
-		#print r.url
-		#max_temp = r.json()['daily']['data'][0]['temperatureMax']
-		#print max_temp
-		#cur.execute(sql,(cities['city'][i],readable_date, max_temp))
-		
-
-            #cur.execute('UPDATE city_max_temp SET ' + i + ' = ' + str(r.json()['daily']['data'][0]['temperatureMax']) + ' WHERE day_of_reading = ' + query_date.strftime('%s'))
-            #cur.execute("INSERT INTO city_max_temp(day_of_reading) VALUES (?)", (int(query_date.strftime('%s')),))
+		print r.status_code		#prints url status.  If 400, then invalid request was made and will not fetch the data
         with con:
             cur.execute('UPDATE city_max_temp SET ' + k + ' = ' + str(r.json()['daily']['data'][0]['temperatureMax']) + ' WHERE day_of_reading = ' + query_date.strftime('%s'))
             if p == 1:
@@ -93,18 +74,12 @@ for k,v in cities.iteritems():
         #query_date = query_date + datetime.timedelta(days=1)
 
 
-
-
 #put temperatures in tidy database
-#nested loop needed
-
 cities = pd.DataFrame(cities.items(), columns=['city', 'coordinates'])
 cities.sort(columns=['city'], ascending=True, inplace=True)
 cities.reset_index(inplace=True)
 cities.drop('index', axis=1, inplace=True)
 print cities['city']
-#for row in cities.iterrows():
-#    print row[1]['city']
 
 #Insert timestamps and cities into rows of tidy database
 query_date = end_date - datetime.timedelta(days=31)
@@ -123,30 +98,16 @@ while query_date < end_date:
         url = base_url + row[1]['coordinates'] + ',' + query_date.strftime('%Y-%m-%dT12:00:00')	#row is a 2-dimensional variable, containing city and coordinates for each row
         r = requests.get(url)
         print r.status_code
-        #print r.json()
-        #print r.url
         with con:
-            #if p == 2:
-                #print 'UPDATE tidy_max_temp SET ' + str(row[1]['city']) + ' = ' + str(r.json()['daily']['data'][0]['temperatureMax']) + ' WHERE city = ' + str(query_date.strftime('%s'))
-                #p = 3
-            
             update_sql = """UPDATE tidy_max_temp SET max_temp = """ + str(r.json()['daily']['data'][0]['temperatureMax']) + """ WHERE city = '""" + str(row[1]['city']) + """' AND todays_date = """ + str(query_date.strftime('%s'))
             print update_sql
             cur.execute(update_sql)
-            
             i += 1
 
-	#print i
-	#if i == 30:
-	#	break
-'''
 
 #Select and print range of temperatures for each city
 Tempdf = pd.read_sql_query("SELECT * from tidy_max_temp", con)
-#print Tempdf
-
 cities_list = Tempdf['city'].unique()
-#print cities_list
 
 tempString = '{0} Temperature Range is: {1}'
 lastRange = 0
@@ -163,7 +124,6 @@ tempString = '{0} Mean Temperature is: {1}'
 for city in cities_list:
     meanTemp = Tempdf.ix[Tempdf['city'] == city, 'max_temp']
     meanTemp = meanTemp.astype(float)
-    print str(city) + ' ' + str(meanTemp)
     meanTemp = str(meanTemp.mean())
     print tempString.format(city, meanTemp)
 
@@ -173,9 +133,23 @@ for city in cities_list:
     varTemp = varTemp.astype(float)
     varTemp = str(varTemp.var())
     print tempString.format(city, varTemp)
+    varTemp = 0
 
-
-# cd /users/markregalla/projects/temperaturefiles
-
-
+#Find change between days and variance of collected differences
+tempString = '{0} Greatest 1 day Temperature Change is {1}'
+tempString2 = '{0} Variance in temperature changes is {1}'
+for city in cities_list:
+    cityTemp = Tempdf.ix[Tempdf['city'] == city, 'max_temp']
+    cityTemp = cityTemp.tolist()
+    maxDelta = 0
+    cityDiff = []
+    for i in range(len(cityTemp)):
+        if i > 0:
+            tmp = abs(float(cityTemp[i]) - float(cityTemp[i-1]))
+            cityDiff.append(tmp)
+            if tmp > maxDelta:
+                maxDelta = tmp
+    cityDiffdf = pd.DataFrame(cityDiff)
+    print tempString.format(city, maxDelta)
+    print tempString2.format(city, cityDiffdf[0].var())
 
